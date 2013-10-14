@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2009 Concurrent, Inc.
- *
- * This work has been released into the public domain
- * by the copyright holder. This applies worldwide.
- *
- * In case this is not legally possible:
- * The copyright holder grants any entity the right
- * to use this work for any purpose, without any
- * conditions, unless such conditions are required by law.
- */
+* Copyright (c) 2009 Concurrent, Inc.
+*
+* This work has been released into the public domain
+* by the copyright holder. This applies worldwide.
+*
+* In case this is not legally possible:
+* The copyright holder grants any entity the right
+* to use this work for any purpose, without any
+* conditions, unless such conditions are required by law.
+*/
 
 package parallelai.spyglass.hbase;
 
@@ -42,14 +42,14 @@ import cascading.tuple.TupleEntryIterator;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 
 /**
- * The HBaseRawTap class is a {@link Tap} subclass. It is used in conjunction with
- * the {@HBaseRawScheme} to allow for the reading and writing
- * of data to and from a HBase cluster.
- */
+* The HBaseRawTap class is a {@link Tap} subclass. It is used in conjunction with
+* the {@HBaseRawScheme} to allow for the reading and writing
+* of data to and from a HBase cluster.
+*/
 @SuppressWarnings({ "deprecation", "rawtypes" })
 public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 8019189493428493323L;
 
@@ -72,7 +72,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Constructor HBaseTap creates a new HBaseTap instance.
-	 * 
+	 *
 	 * @param tableName
 	 *            of type String
 	 * @param HBaseFullScheme
@@ -85,7 +85,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Constructor HBaseTap creates a new HBaseTap instance.
-	 * 
+	 *
 	 * @param tableName
 	 *            of type String
 	 * @param HBaseFullScheme
@@ -100,7 +100,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Constructor HBaseTap creates a new HBaseTap instance.
-	 * 
+	 *
 	 * @param tableName
 	 *            of type String
 	 * @param HBaseFullScheme
@@ -114,7 +114,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Constructor HBaseTap creates a new HBaseTap instance.
-	 * 
+	 *
 	 * @param tableName
 	 *            of type String
 	 * @param HBaseFullScheme
@@ -130,7 +130,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Constructor HBaseTap creates a new HBaseTap instance.
-	 * 
+	 *
 	 * @param quorumNames		HBase quorum
 	 * @param tableName			The name of the HBase table to read
 	 * @param HBaseFullScheme
@@ -146,7 +146,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 
 	/**
 	 * Method getTableName returns the tableName of this HBaseTap object.
-	 * 
+	 *
 	 * @return the tableName (type String) of this HBaseTap object.
 	 */
 	public String getTableName() {
@@ -273,7 +273,7 @@ public class HBaseRawTap extends Tap<JobConf, RecordReader, OutputCollector> {
 		conf.set(TableInputFormat.INPUT_TABLE, tableName);
 		if (null != base64Scan)
 			conf.set(TableInputFormat.SCAN, base64Scan);
-			
+
 		super.sourceConfInit(process, conf);
 	}
 

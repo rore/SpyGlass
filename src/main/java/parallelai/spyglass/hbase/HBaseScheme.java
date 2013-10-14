@@ -12,6 +12,7 @@
 
 package parallelai.spyglass.hbase;
 
+import parallelai.spyglass.hbase.HBaseConstants.SplitType;
 import cascading.flow.FlowProcess;
 import cascading.scheme.Scheme;
 import cascading.scheme.SinkCall;
@@ -65,6 +66,8 @@ public class HBaseScheme
 //  private transient byte[][] fields;
   
   private boolean useSalt = false;
+
+  private SplitType splitType = SplitType.GRANULAR;
  
 
   /**
@@ -219,10 +222,7 @@ public class HBaseScheme
         String fieldName = (String) fields.get(k);
         byte[] fieldNameBytes = Bytes.toBytes(fieldName);
         byte[] cellValue = row.getValue(familyNameBytes, fieldNameBytes);
-        if (cellValue == null) {
-            cellValue = new byte[0];
-        }
-        result.add(new ImmutableBytesWritable(cellValue));
+        result.add(cellValue != null ? new ImmutableBytesWritable(cellValue) : null);
       }
     }
 
@@ -238,12 +238,17 @@ public class HBaseScheme
     OutputCollector outputCollector = sinkCall.getOutput();
     Tuple key = tupleEntry.selectTuple(keyField);
     ImmutableBytesWritable keyBytes = (ImmutableBytesWritable) key.getObject(0);
-    
-    if( useSalt ) {
-    	keyBytes = HBaseSalter.addSaltPrefix(keyBytes);
+
+    if (useSalt) {
+      keyBytes = HBaseSalter.addSaltPrefix(keyBytes);
     }
-    
-    Put put = new Put(keyBytes.get(), this.timeStamp);
+
+    Put put;
+    if (this.timeStamp == 0L) {
+      put = new Put(keyBytes.get());
+    } else {
+      put = new Put(keyBytes.get(), this.timeStamp);
+    }
     
     for (int i = 0; i < valueFields.length; i++) {
       Fields fieldSelector = valueFields[i];
@@ -254,7 +259,8 @@ public class HBaseScheme
         Tuple tuple = values.getTuple();
 
         ImmutableBytesWritable valueBytes = (ImmutableBytesWritable) tuple.getObject(j);
-        put.add(Bytes.toBytes(familyNames[i]), Bytes.toBytes((String) fields.get(j)), valueBytes.get());
+        if (valueBytes != null)
+            put.add(Bytes.toBytes(familyNames[i]), Bytes.toBytes((String) fields.get(j)), valueBytes.get());
       }
     }
 
@@ -276,11 +282,31 @@ public class HBaseScheme
   @Override
   public void sourceConfInit(FlowProcess<JobConf> process,
       Tap<JobConf, RecordReader, OutputCollector> tap, JobConf conf) {
-    conf.setInputFormat(HBaseInputFormat.class);
 
-    String columns = getColumns();
-    LOG.debug("sourcing from columns: {}", columns);
-    conf.set(HBaseInputFormat.COLUMN_LIST, columns);
+      switch(splitType) {
+          case GRANULAR:
+          {
+              conf.setInputFormat(HBaseInputFormatGranular.class);
+
+              String columns = getColumns();
+              LOG.debug("sourcing from columns: {}", columns);
+              conf.set(HBaseInputFormatGranular.COLUMN_LIST, columns);
+          }
+          break;
+
+          case REGIONAL:
+          {
+              conf.setInputFormat(HBaseInputFormatRegional.class);
+
+              String columns = getColumns();
+              LOG.debug("sourcing from columns: {}", columns);
+              conf.set(HBaseInputFormatRegional.COLUMN_LIST, columns);
+          }
+          break;
+
+          default:
+              LOG.error("Unknown Split Type : " + splitType.toString());
+      }
   }
 
   private String getColumns() {
@@ -341,5 +367,9 @@ public class HBaseScheme
     result = 31 * result + (familyNames != null ? Arrays.hashCode(familyNames) : 0);
     result = 31 * result + (valueFields != null ? Arrays.hashCode(valueFields) : 0);
     return result;
+  }
+
+  public void setInputSplitTye(SplitType sType) {
+      this.splitType = sType;
   }
 }

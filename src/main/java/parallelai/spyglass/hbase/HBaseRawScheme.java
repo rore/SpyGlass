@@ -1,14 +1,14 @@
 /*
- * Copyright (c) 2009 Concurrent, Inc.
- *
- * This work has been released into the public domain
- * by the copyright holder. This applies worldwide.
- *
- * In case this is not legally possible:
- * The copyright holder grants any entity the right
- * to use this work for any purpose, without any
- * conditions, unless such conditions are required by law.
- */
+* Copyright (c) 2009 Concurrent, Inc.
+*
+* This work has been released into the public domain
+* by the copyright holder. This applies worldwide.
+*
+* In case this is not legally possible:
+* The copyright holder grants any entity the right
+* to use this work for any purpose, without any
+* conditions, unless such conditions are required by law.
+*/
 
 package parallelai.spyglass.hbase;
 
@@ -41,16 +41,16 @@ import cascading.tuple.TupleEntry;
 import cascading.util.Util;
 
 /**
- * The HBaseRawScheme class is a {@link Scheme} subclass. It is used in conjunction
- * with the {@HBaseRawTap} to allow for the reading and writing of data
- * to and from a HBase cluster.
- * 
- * @see HBaseRawTap
- */
+* The HBaseRawScheme class is a {@link Scheme} subclass. It is used in conjunction
+* with the {@HBaseRawTap} to allow for the reading and writing of data
+* to and from a HBase cluster.
+*
+* @see HBaseRawTap
+*/
 @SuppressWarnings({ "rawtypes", "deprecation" })
 public class HBaseRawScheme extends Scheme<JobConf, RecordReader, OutputCollector, Object[], Object[]> {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 6248976486883281356L;
 
@@ -67,7 +67,7 @@ public class HBaseRawScheme extends Scheme<JobConf, RecordReader, OutputCollecto
 
 	/**
 	 * Constructor HBaseScheme creates a new HBaseScheme instance.
-	 * 
+	 *
 	 * @param keyFields
 	 *            of type Fields
 	 * @param familyName
@@ -102,7 +102,7 @@ public class HBaseRawScheme extends Scheme<JobConf, RecordReader, OutputCollecto
 	/**
 	 * Method getFamilyNames returns the set of familyNames of this HBaseScheme
 	 * object.
-	 * 
+	 *
 	 * @return the familyNames (type String[]) of this HBaseScheme object.
 	 */
 	public String[] getFamilyNames() {

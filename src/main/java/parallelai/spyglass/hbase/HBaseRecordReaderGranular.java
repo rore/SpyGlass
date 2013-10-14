@@ -28,31 +28,34 @@ import org.apache.hadoop.hbase.util.Writables;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.util.StringUtils;
 
+import org.jruby.javasupport.util.RuntimeHelpers;
 import parallelai.spyglass.hbase.HBaseConstants.SourceMode;
 
-public class HBaseRecordReader implements
-    RecordReader<ImmutableBytesWritable, Result> {
+public class HBaseRecordReaderGranular extends HBaseRecordReaderBase {
 
-  static final Log LOG = LogFactory.getLog(HBaseRecordReader.class);
+  static final Log LOG = LogFactory.getLog(HBaseRecordReaderGranular.class);
 
-  private byte[] startRow;
-  private byte[] endRow;
   private byte[] lastSuccessfulRow;
-  private TreeSet<String> keyList;
-  private SourceMode sourceMode;
-  private Filter trrRowFilter;
   private ResultScanner scanner;
-  private HTable htable;
-  private byte[][] trrInputColumns;
   private long timestamp;
-  private int rowcount;
-  private boolean logScannerActivity = false;
-  private int logPerRowCount = 100;
-  private boolean endRowInclusive = true;
-  private int versions = 1;
-  private boolean useSalt = false;
+  private int rowcount = 0;
 
-  /**
+    @Override
+    public String toString() {
+        StringBuffer sbuf = new StringBuffer();
+
+        sbuf.append("".format("HBaseRecordReaderRegional : startRow [%s] endRow [%s] lastRow [%s] nextKey [%s] endRowInc [%s] rowCount [%s]",
+                Bytes.toString(startRow), Bytes.toString(endRow), Bytes.toString(lastSuccessfulRow), Bytes.toString(nextKey), endRowInclusive, rowcount));
+        sbuf.append("".format(" sourceMode [%s] salt [%s] versions [%s] ",
+                sourceMode, useSalt, versions));
+
+        return sbuf.toString();
+    }
+
+    private final int scanCaching = 1000;
+
+
+    /**
    * Restart from survivable exceptions by creating a new scanner.
    * 
    * @param firstRow
@@ -67,7 +70,8 @@ public class HBaseRecordReader implements
 
         TableInputFormat.addColumns(scan, trrInputColumns);
         scan.setFilter(trrRowFilter);
-        scan.setCacheBlocks(false);
+        scan.setCacheBlocks(true);
+        scan.setCaching(scanCaching);
         this.scanner = this.htable.getScanner(scan);
         currentScan = scan;
       } else {
@@ -76,6 +80,8 @@ public class HBaseRecordReader implements
         Scan scan = new Scan(firstRow, (endRowInclusive ? Bytes.add(endRow,
             new byte[] { 0 }) : endRow));
         TableInputFormat.addColumns(scan, trrInputColumns);
+          scan.setCacheBlocks(true);
+          scan.setCaching(scanCaching);
         this.scanner = this.htable.getScanner(scan);
         currentScan = scan;
       }
@@ -86,6 +92,8 @@ public class HBaseRecordReader implements
       Scan scan = new Scan(firstRow);
       TableInputFormat.addColumns(scan, trrInputColumns);
       scan.setFilter(trrRowFilter);
+      scan.setCacheBlocks(true);
+        scan.setCaching(scanCaching);
       this.scanner = this.htable.getScanner(scan);
       currentScan = scan;
     }
@@ -96,41 +104,6 @@ public class HBaseRecordReader implements
     }
   }
 
-  public TreeSet<String> getKeyList() {
-    return keyList;
-  }
-
-  public void setKeyList(TreeSet<String> keyList) {
-    this.keyList = keyList;
-  }
-
-  public void setVersions(int versions) {
-    this.versions = versions;
-  }
-  
-  public void setUseSalt(boolean useSalt) {
-    this.useSalt = useSalt;
-  }
-
-  public SourceMode getSourceMode() {
-    return sourceMode;
-  }
-
-  public void setSourceMode(SourceMode sourceMode) {
-    this.sourceMode = sourceMode;
-  }
-
-  public byte[] getEndRow() {
-    return endRow;
-  }
-
-  public void setEndRowInclusive(boolean isInclusive) {
-    endRowInclusive = isInclusive;
-  }
-
-  public boolean getEndRowInclusive() {
-    return endRowInclusive;
-  }
 
   private byte[] nextKey = null;
   private Vector<List<KeyValue>> resultVector = null;
@@ -155,55 +128,6 @@ public class HBaseRecordReader implements
     default:
       throw new IOException(" Unknown source mode : " + sourceMode);
     }
-  }
-
-  byte[] getStartRow() {
-    return this.startRow;
-  }
-
-  /**
-   * @param htable
-   *          the {@link HTable} to scan.
-   */
-  public void setHTable(HTable htable) {
-    Configuration conf = htable.getConfiguration();
-    logScannerActivity = conf.getBoolean(ScannerCallable.LOG_SCANNER_ACTIVITY,
-        false);
-    logPerRowCount = conf.getInt(LOG_PER_ROW_COUNT, 100);
-    this.htable = htable;
-  }
-
-  /**
-   * @param inputColumns
-   *          the columns to be placed in {@link Result}.
-   */
-  public void setInputColumns(final byte[][] inputColumns) {
-    this.trrInputColumns = inputColumns;
-  }
-
-  /**
-   * @param startRow
-   *          the first row in the split
-   */
-  public void setStartRow(final byte[] startRow) {
-    this.startRow = startRow;
-  }
-
-  /**
-   * 
-   * @param endRow
-   *          the last row in the split
-   */
-  public void setEndRow(final byte[] endRow) {
-    this.endRow = endRow;
-  }
-
-  /**
-   * @param rowFilter
-   *          the {@link Filter} to be used.
-   */
-  public void setRowFilter(Filter rowFilter) {
-    this.trrRowFilter = rowFilter;
   }
 
   @Override
@@ -234,15 +158,37 @@ public class HBaseRecordReader implements
 
   @Override
   public long getPos() {
-    // This should be the ordinal tuple in the range;
-    // not clear how to calculate...
-    return 0;
+    switch(sourceMode) {
+        case GET_LIST:
+            long posGet = (keyList != null ) ? 0 : initialNoOfKeys - keyList.size() ;
+            return posGet;
+
+        case SCAN_ALL:
+        case SCAN_RANGE:
+            long posScan = (noOfLogCount * logPerRowCount) + rowcount;
+            return posScan;
+
+        default:
+            return 0;
+    }
   }
 
   @Override
   public float getProgress() {
     // Depends on the total number of tuples and getPos
-    return 0;
+    switch(sourceMode) {
+        case GET_LIST:
+            float progGet = ((initialNoOfKeys == 0) ? 0 : (getPos() / initialNoOfKeys));
+            return progGet;
+
+        case SCAN_ALL:
+        case SCAN_RANGE:
+            float progScan = (getPos() / (getPos() + 10000));
+            return progScan;
+
+        default:
+            return 0;
+    }
   }
 
   /**
@@ -265,15 +211,18 @@ public class HBaseRecordReader implements
       try {
         try {
           result = this.scanner.next();
-          if (logScannerActivity) {
             rowcount++;
             if (rowcount >= logPerRowCount) {
+                long now = System.currentTimeMillis();
+                timestamp = now;
+                noOfLogCount ++;
+                rowcount = 0;
+            }
+
+          if (logScannerActivity) {
               long now = System.currentTimeMillis();
               LOG.debug("Mapper took " + (now - timestamp) + "ms to process "
-                  + rowcount + " rows");
-              timestamp = now;
-              rowcount = 0;
-            }
+                      + rowcount + " rows");
           }
         } catch (IOException e) {
           // try to handle all IOExceptions by restarting
@@ -450,7 +399,6 @@ public class HBaseRecordReader implements
 
               String newKey = keyList.pollFirst(); // Bytes.toString(resultKeyValue.getKey());//
 
-              System.out.println("+ New Key => " + newKey);
               nextKey = (newKey == null || newKey.length() == 0) ? null : Bytes
                   .toBytes(newKey);
 

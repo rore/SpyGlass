@@ -68,7 +68,7 @@ public class HBaseSalter {
 		  byte[] originalStartKey, byte[] originalStopKey, 
 		  byte[] regionStartKey, byte[] regionStopKey, 
 		  String prefixList) throws IOException {
-	LOG.info("".format("OSRT: (%s) OSTP: (%s) RSRT: (%s) RSTP: (%s) PRFX: (%s)",
+	LOG.debug("".format("OSRT: (%s) OSTP: (%s) RSRT: (%s) RSTP: (%s) PRFX: (%s)",
 			Bytes.toString(originalStartKey),
 			Bytes.toString(originalStopKey),
 			Bytes.toString(regionStartKey),
@@ -149,16 +149,21 @@ public class HBaseSalter {
 
   public static byte[][] getAllKeysWithStop(byte[] originalKey, String prefixList, byte stopKey) throws IOException {
 	  char[] prefixArray = prefixList.toCharArray();
-	  
-	  return getAllKeysWithStartStop(originalKey, prefixList, (byte)prefixArray[0], (byte)(stopKey - 1));
+
+      return getAllKeysWithStartStop(originalKey, prefixList, (byte)prefixArray[0], stopKey);
+//	  return getAllKeysWithStartStop(originalKey, prefixList, (byte)prefixArray[0], (byte)(stopKey - 1));
   }
 
   public static byte[][] getAllKeysInRange(byte[] originalKey, String prefixList, byte startPrefix, byte stopPrefix) {
-	  return getAllKeysWithStartStop(originalKey, prefixList, startPrefix, (byte)(stopPrefix - 1));
+      return getAllKeysWithStartStop(originalKey, prefixList, startPrefix, stopPrefix);
+//	  return getAllKeysWithStartStop(originalKey, prefixList, startPrefix, (byte)(stopPrefix - 1));
   }
   
   private static byte[][] getAllKeysWithStartStop(byte[] originalKey, String prefixList, byte startPrefix, byte stopPrefix) {
-	  char[] prefixArray = prefixList.toCharArray();
+      LOG.debug("".format("getAllKeysWithStartStop: OKEY (%s) PLIST (%s) PSRT (%s) PSTP (%s)",
+              Bytes.toString(originalKey), prefixList, startPrefix, stopPrefix));
+
+      char[] prefixArray = prefixList.toCharArray();
 	  TreeSet<Byte> prefixSet = new TreeSet<Byte>();
 	  
 	  for( char c : prefixArray ) {
@@ -166,11 +171,16 @@ public class HBaseSalter {
 	  }
 	  
 	  SortedSet<Byte> subSet = prefixSet.subSet(startPrefix, true, stopPrefix, true);
+
+      LOG.debug("".format("Prefix subset (%s)", subSet));
 	  
 	  return getAllKeys(originalKey, subSet.toArray(new Byte[]{}));
   }
   
   public static byte[][] getAllKeys(byte[] originalKey, Byte [] prefixArray) {
+    LOG.debug("".format("getAllKeys: OKEY (%s) PARRAY (%s)",
+              Bytes.toString(originalKey), prefixArray ));
+
 	byte[][] keys = new byte[prefixArray.length][];
 	
     for (byte i = 0; i < prefixArray.length; i++) {
