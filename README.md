@@ -286,6 +286,30 @@ e.g.
 	}
 	.write(hbaseOut)
 
+**Multi Tables**
+
+To read or write from multiple tables you can use HBaseMultiTableRawSource. 
+HBaseMultiTableRawSource gets an array of Scan objects, each one should include the table name it works on. 
+It will then scan all the requested tables and will emit the rows same as HBaseRawSource.
+Example use:
+
+	val scan = new Scan
+	val key = "my_key_prefix"
+	val table1 = "table1"
+	scan.setStartRow(Bytes.toBytes(key))
+	scan.setFilter(new PrefixFilter(Bytes.toBytes(key)))
+	scan.setAttribute(Scan.SCAN_ATTRIBUTES_TABLE_NAME, Bytes.toBytes(table))
+	val scan2 = new Scan
+	val table2 = "table2"
+	scan2.setStartRow(Bytes.toBytes(key))
+	scan2.setFilter(new PrefixFilter(Bytes.toBytes(key)))
+	scan2.setAttribute(Scan.SCAN_ATTRIBUTES_TABLE_NAME, Bytes.toBytes(table2))
+	val scanners Array(HBaseRawSource.convertScanToString(scan),HBaseRawSource.convertScanToString(scan2))
+	val hbaseSource = new HBaseMultiTableRawSource("localhost", base64Scans = scans)
+
+When using HBaseMultiTableRawSource to output data the output tuple should include a field called "tablename" that specifies the table to write that row to.
+
+
 6. Jdbc Tap and Source
 ===========================
 

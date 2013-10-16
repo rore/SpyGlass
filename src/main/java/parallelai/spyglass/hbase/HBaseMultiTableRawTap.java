@@ -163,7 +163,7 @@ public class HBaseMultiTableRawTap extends Tap<JobConf, RecordReader, OutputColl
 	@Override
 	public TupleEntryCollector openForWrite(FlowProcess<JobConf> jobConfFlowProcess, OutputCollector outputCollector)
 			throws IOException {
-		HBaseTapCollector hBaseCollector = new HBaseTapCollector(jobConfFlowProcess, this);
+		HBaseDeprecatedTapCollector hBaseCollector = new HBaseDeprecatedTapCollector(jobConfFlowProcess, this);
 		hBaseCollector.prepare();
 		return hBaseCollector;
 	}

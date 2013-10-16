@@ -170,7 +170,7 @@ public class HBaseRawScheme extends Scheme<JobConf, RecordReader, OutputCollecto
 				ImmutableBytesWritable valueBytes = getBytes(o);
 				Comparable field = outFields.get(n);
 				ColumnName cn = parseColumn((String) field);
-				if (null == cn.family) {
+				if (null == cn.family && null != familyNames) {
 					if (n >= familyNames.length)
 						cn.family = familyNames[familyNames.length - 1];
 					else

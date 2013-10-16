@@ -19,6 +19,7 @@ import java.util.HashSet;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapred.TableRecordReader;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
@@ -162,12 +163,13 @@ public class HBaseMultiTableRawScheme extends Scheme<JobConf, RecordReader, Outp
 		// get the table name
 		Tuple tnkey = tupleEntry.selectTuple(TableNameField);
 		Object otn = tnkey.getObject(0);
+		if (null == otn) throw new IllegalArgumentException(TableNameField + " must be specified");
 		ImmutableBytesWritable tableName = getBytes(otn);
 		Tuple key = tupleEntry.selectTuple(RowKeyField);
 		Object okey = key.getObject(0);
 		ImmutableBytesWritable keyBytes = getBytes(okey);
 		Put put = new Put(keyBytes.get());
-		Fields outFields = tupleEntry.getFields().subtract(RowKeyField);
+		Fields outFields = tupleEntry.getFields().subtract(RowKeyField).subtract(TableNameField);
 		if (null != outFields) {
 			TupleEntry values = tupleEntry.selectEntry(outFields);
 			for (int n = 0; n < values.getFields().size(); n++) {
@@ -175,7 +177,7 @@ public class HBaseMultiTableRawScheme extends Scheme<JobConf, RecordReader, Outp
 				ImmutableBytesWritable valueBytes = getBytes(o);
 				Comparable field = outFields.get(n);
 				ColumnName cn = parseColumn((String) field);
-				if (null == cn.family) {
+				if (null == cn.family && null != familyNames) {
 					if (n >= familyNames.length)
 						cn.family = familyNames[familyNames.length - 1];
 					else
